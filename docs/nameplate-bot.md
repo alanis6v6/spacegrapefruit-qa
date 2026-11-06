@@ -35,7 +35,8 @@ GITHUB_TOKEN="$(gh auth token)" GITHUB_REPOSITORY=alanis6v6/spacegrapefruit-qa n
 |---|---|
 | `number` / `url` | 討論編號與網址 |
 | `title` | 原標題（含 `[SillyTavern]` 前綴，不改） |
-| `tags` | 標題**開頭**的 `[XXX]`，可多個；沒有就 `[]` |
+| `tags` | 標題**開頭連續**的 `[A][B][C]` 全部取成分類（複選）；括號之間可有空白（`[A] [B] 標題` 也算），去重、保留順序、去前後空白、最多 5 個；標題中段或後面的方括號不算；沒有就 `[]` |
+| `cleanTitle` | 去掉開頭那串方括號後的標題（網站顯示用）；去完沒字就等於 `title` |
 | `category` / `categorySlug` | 分類名稱／slug（`Q&A`／`q-a` 或 `Announcements`／`announcements`） |
 | `author` | `{ login, avatar }`；帳號被刪＝`ghost` |
 | `createdAt` | 討論建立時間 |
@@ -49,7 +50,7 @@ GITHUB_TOKEN="$(gh auth token)" GITHUB_REPOSITORY=alanis6v6/spacegrapefruit-qa n
 
 **giscus 自動開的討論**（站內發問會這樣產生）：作者 login 是 `giscus` 開頭或 `[bot]` 結尾，且內文含 giscus 標記 `<!-- sha1: ... -->`（函式 `isGiscusDiscussion`）。這種**Q&A 分類**的討論，題目內容（`bodyHTML`）與發問人（`author`）改用**第一則頂層留言**的，`answers` 不算那一則。頁面串（Announcements）內文是頁面介紹，不換。還沒人留言時維持原樣。
 
-內容沒變（不看 `updatedAt`）就不重寫、不 commit。dry-run 會在 stderr 印題數與每題 number／title／answers 摘要，不寫檔。
+內容沒變（不看 `updatedAt`）就不重寫、不 commit。dry-run 會在 stderr 印題數與每題 number／title／tags／cleanTitle／answers 摘要，不寫檔。
 
 ## 怎麼找到「名牌登記處」
 
