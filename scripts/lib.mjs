@@ -220,7 +220,8 @@ export function buildQuestions({ discussions, now = new Date(), registry: pinned
     if (!isQA && !isPage) continue;
     let author = d.author, bodyHTML = d.bodyHTML == null ? '' : d.bodyHTML, comments = d.comments || [];
     // 站內發問（giscus 開的串）：第一則頂層留言才是題目與發問人；只用在 Q&A，頁面串（Announcements）的內文是頁面介紹，不換
-    if (isQA && isGiscusDiscussion(d) && comments.length) {
+    const viaGiscus = isQA && isGiscusDiscussion(d);
+    if (viaGiscus && comments.length) {
       const first = comments[0];
       author = first.author; bodyHTML = first.bodyHTML == null ? '' : first.bodyHTML; comments = comments.slice(1);
     }
@@ -234,6 +235,7 @@ export function buildQuestions({ discussions, now = new Date(), registry: pinned
       answered: isQA && d.isAnswered === true,
       answerAuthor: isQA && d.answer && d.answer.author ? d.answer.author.login : null,
       tags: extractTags(d.title),
+      viaGiscus,
     };
     if (isPage) q.pagePath = d.title.trim();
     out.push(q);
@@ -242,7 +244,7 @@ export function buildQuestions({ discussions, now = new Date(), registry: pinned
   return { updatedAt: now.toISOString(), questions: out };
 }
 export const summarizeQuestions = (qs) => `questions.json：${qs.questions.length} 題\n` +
-  qs.questions.map((q) => `  #${q.number} ${q.title}（answers=${q.answers}${q.pagePath ? ', pagePath=' + q.pagePath : ''}）`).join('\n');
+  qs.questions.map((q) => `  #${q.number} ${q.title}（answers=${q.answers}${q.pagePath ? ', pagePath=' + q.pagePath : ''}${q.viaGiscus ? ', viaGiscus' : ''}）`).join('\n');
 
 // 內容沒變（不看 updatedAt）就不用寫檔、不用 commit
 export function sameContent(oldJson, newObj) {

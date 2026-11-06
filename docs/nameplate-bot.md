@@ -42,6 +42,7 @@ GITHUB_TOKEN="$(gh auth token)" GITHUB_REPOSITORY=alanis6v6/spacegrapefruit-qa n
 | `bodyHTML` | GitHub GraphQL 的 `bodyHTML`（GitHub 已清理過，不是自己轉的） |
 | `answers` | 頂層留言數，**不算發問人自己的留言**（回覆串裡的回覆不算） |
 | `answered` / `answerAuthor` | Q&A 的 `isAnswered`／被選為解答那則的作者；非 Q&A 固定 `false`／`null` |
+| `viaGiscus` | 布林。Q&A 分類且 `isGiscusDiscussion` 為真（站內發問頁由 giscus 自動開的題目）才是 `true`，其他（一般人直接開的、頁面串）都是 `false`。網站靠它判斷這題的第一則留言就是題目本身，要藏起來避免重複 |
 | `pagePath` | 只有「頁面串」才有：Announcements 裡標題是網站頁面路徑的討論（例 `qa/sillytavern-railway-to-docker/`，giscus 用 pathname 對應） |
 
 **收哪些**：Q&A 分類全部；加上 Announcements 裡標題是頁面路徑的（沒空白、至少一個 `/`、只含網址字元）。「名牌登記處」與其他公告不收。
