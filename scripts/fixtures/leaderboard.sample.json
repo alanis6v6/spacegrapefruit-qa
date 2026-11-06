@@ -1,0 +1,132 @@
+{
+  "updatedAt": "2026-11-05T09:00:00.000Z",
+  "registryUrl": "https://github.com/alanis6v6/spacegrapefruit-qa/discussions/4",
+  "people": [
+    {
+      "login": "mintchoco",
+      "nickname": "薄荷巧克力脆片大王很長很",
+      "color": "candy",
+      "level": 14,
+      "answers": 10,
+      "accepted": 1,
+      "avatar": "https://github.com/mintchoco.png?size=64"
+    },
+    {
+      "login": "night-owl",
+      "nickname": "夜貓",
+      "color": "aurora",
+      "level": 10,
+      "answers": 6,
+      "accepted": 1,
+      "avatar": "https://github.com/night-owl.png?size=64"
+    },
+    {
+      "login": "candyfloss",
+      "nickname": "棉花糖",
+      "color": "soda",
+      "level": 8,
+      "answers": 7,
+      "accepted": 0,
+      "avatar": "https://github.com/candyfloss.png?size=64"
+    },
+    {
+      "login": "seaside",
+      "nickname": "海邊",
+      "color": "sunset",
+      "level": 5,
+      "answers": 4,
+      "accepted": 0,
+      "avatar": "https://github.com/seaside.png?size=64"
+    },
+    {
+      "login": "a1",
+      "nickname": "甲",
+      "color": "sky",
+      "level": 4,
+      "answers": 3,
+      "accepted": 0,
+      "avatar": "https://github.com/a1.png?size=64"
+    },
+    {
+      "login": "pomelo-fan",
+      "nickname": "柚子控",
+      "color": "sunset",
+      "level": 4,
+      "answers": 3,
+      "accepted": 0,
+      "avatar": "https://github.com/pomelo-fan.png?size=64"
+    },
+    {
+      "login": "b2",
+      "nickname": "乙",
+      "color": "fruit",
+      "level": 3,
+      "answers": 2,
+      "accepted": 0,
+      "avatar": "https://github.com/b2.png?size=64"
+    },
+    {
+      "login": "c3",
+      "nickname": "c3",
+      "color": "pink",
+      "level": 2,
+      "answers": 1,
+      "accepted": 0,
+      "avatar": "https://github.com/c3.png?size=64"
+    },
+    {
+      "login": "d4",
+      "nickname": "d4",
+      "color": "pink",
+      "level": 2,
+      "answers": 1,
+      "accepted": 0,
+      "avatar": "https://github.com/d4.png?size=64"
+    },
+    {
+      "login": "e5",
+      "nickname": "e5",
+      "color": "pink",
+      "level": 2,
+      "answers": 1,
+      "accepted": 0,
+      "avatar": "https://github.com/e5.png?size=64"
+    },
+    {
+      "login": "tiny",
+      "nickname": "小不點",
+      "color": "mint",
+      "level": 2,
+      "answers": 1,
+      "accepted": 0,
+      "avatar": "https://github.com/tiny.png?size=64"
+    },
+    {
+      "login": "alanis6v6",
+      "nickname": "太空葡萄柚",
+      "color": "rainbow",
+      "level": 3,
+      "answers": 2,
+      "accepted": 0,
+      "avatar": "https://github.com/alanis6v6.png?size=64",
+      "host": true
+    }
+  ],
+  "pages": {
+    "qa/other": [
+      "a1",
+      "b2",
+      "c3",
+      "d4",
+      "e5"
+    ],
+    "qa/sillytavern-railway-to-docker": [
+      "mintchoco",
+      "candyfloss",
+      "night-owl",
+      "seaside",
+      "pomelo-fan",
+      "tiny"
+    ]
+  }
+}

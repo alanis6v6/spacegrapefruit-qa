@@ -1,0 +1,46 @@
+name: 名牌登記與等級計算
+
+on:
+  discussion:
+    types: [created, edited, answered, unanswered, deleted]
+  discussion_comment:
+    types: [created, edited, deleted]
+  schedule:
+    - cron: '17 3 * * *'     # 每天一次（UTC 03:17）
+  workflow_dispatch:
+
+permissions:
+  contents: write            # 把 data/leaderboard.json commit 回來
+  discussions: read          # 只讀討論與留言；機器人不會在討論區發文、留言或建串
+
+concurrency:
+  group: nameplate
+  cancel-in-progress: false
+
+jobs:
+  nameplate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: 計算名牌與等級
+        run: node scripts/run.mjs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # 可選：「名牌登記處」討論的編號（討論網址最後那個數字）。留空＝自動找
+          # （Announcements 分類＋標題剛好是「名牌登記處」）。登記處建好後可填，更保險。
+          REGISTRY_DISCUSSION_NUMBER: ''
+      - name: 有變才 commit
+        run: |
+          git add data/leaderboard.json
+          if git diff --cached --quiet; then
+            echo "排行榜沒變，不 commit"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "更新知識+ 排行榜"
+          git pull --rebase
+          git push
