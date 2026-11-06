@@ -76,14 +76,14 @@ export function parseRegistration(body) {
 }
 
 // ---------- GraphQL 讀取（含分頁）----------
-const COMMENT_FIELDS = 'nodes { body isAnswer createdAt author { login } } pageInfo { hasNextPage endCursor }';
+const COMMENT_FIELDS = 'nodes { body bodyHTML isAnswer createdAt author { login } } pageInfo { hasNextPage endCursor }';
 export const Q_DISCUSSIONS = `query($owner:String!,$name:String!,$after:String){
   repository(owner:$owner,name:$name){
     id
     discussionCategories(first:50){ nodes { id name slug } }
     discussions(first:30, after:$after, orderBy:{field:CREATED_AT, direction:ASC}){
       pageInfo { hasNextPage endCursor }
-      nodes { id number title url category { name slug } author { login }
+      nodes { id number title url createdAt body bodyHTML isAnswered answer { author { login } } category { name slug } author { login }
         comments(first:100){ ${COMMENT_FIELDS} } }
     }
   }
@@ -191,6 +191,59 @@ export function compute({ discussions, blocklist = [], now = new Date(), registr
   };
 }
 
+// ---------- 題目清單（data/questions.json）----------
+// giscus 自動開的討論：作者是 giscus 開頭或 [bot] 結尾的帳號，且內文含 giscus 的標記（<!-- sha1: ... -->）
+export function isGiscusDiscussion(d) {
+  const login = (d.author && d.author.login) || '';
+  const botLike = /^giscus/i.test(login) || /\[bot\]$/i.test(login);
+  return botLike && /<!--\s*sha1:\s*[0-9a-f]+\s*-->/i.test(String(d.body || ''));
+}
+// 標題是網站頁面路徑（例如 qa/sillytavern-railway-to-docker/）：沒有空白、至少一個斜線、只含網址字元
+export function isPagePathTitle(title) {
+  const t = String(title || '').trim();
+  return /^\/?[A-Za-z0-9_.~%-]+(\/[A-Za-z0-9_.~%-]*)+$/.test(t);
+}
+export function extractTags(title) {
+  const m = String(title || '').match(/^(?:\s*\[[^\]]+\])+/);
+  return m ? [...m[0].matchAll(/\[([^\]]+)\]/g)].map((x) => x[1].trim()).filter(Boolean) : [];
+}
+const authorOf = (a) => { const login = (a && a.login) || 'ghost'; return { login, avatar: avatarOf(login) }; };
+
+export function buildQuestions({ discussions, now = new Date(), registry: pinned = null }) {
+  const registry = pinned || discussions.find(isRegistry) || null;
+  const out = [];
+  for (const d of discussions) {
+    if (d === registry || isRegistry(d)) continue;
+    const slug = (d.category && d.category.slug) || '';
+    const isQA = slug === 'q-a';
+    const isPage = slug === 'announcements' && isPagePathTitle(d.title);
+    if (!isQA && !isPage) continue;
+    let author = d.author, bodyHTML = d.bodyHTML == null ? '' : d.bodyHTML, comments = d.comments || [];
+    // 站內發問（giscus 開的串）：第一則頂層留言才是題目與發問人；只用在 Q&A，頁面串（Announcements）的內文是頁面介紹，不換
+    if (isQA && isGiscusDiscussion(d) && comments.length) {
+      const first = comments[0];
+      author = first.author; bodyHTML = first.bodyHTML == null ? '' : first.bodyHTML; comments = comments.slice(1);
+    }
+    const asker = author && author.login ? author.login.toLowerCase() : '';
+    const answers = comments.filter((c) => !(asker && c.author && c.author.login && c.author.login.toLowerCase() === asker)).length;
+    const q = {
+      number: d.number, title: d.title, url: d.url,
+      category: (d.category && d.category.name) || '', categorySlug: slug,
+      author: authorOf(author), createdAt: d.createdAt || null, bodyHTML,
+      answers,
+      answered: isQA && d.isAnswered === true,
+      answerAuthor: isQA && d.answer && d.answer.author ? d.answer.author.login : null,
+      tags: extractTags(d.title),
+    };
+    if (isPage) q.pagePath = d.title.trim();
+    out.push(q);
+  }
+  out.sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)) || b.number - a.number);
+  return { updatedAt: now.toISOString(), questions: out };
+}
+export const summarizeQuestions = (qs) => `questions.json：${qs.questions.length} 題\n` +
+  qs.questions.map((q) => `  #${q.number} ${q.title}（answers=${q.answers}${q.pagePath ? ', pagePath=' + q.pagePath : ''}）`).join('\n');
+
 // 內容沒變（不看 updatedAt）就不用寫檔、不用 commit
 export function sameContent(oldJson, newObj) {
   if (!oldJson) return false;
@@ -203,13 +256,18 @@ export const serialize = (obj) => JSON.stringify(obj, null, 2) + '\n';
 // 整套流程（注入 gql、讀檔、寫檔）：回傳 { wrote, registryFound }。完全唯讀，不會在討論區建任何東西。
 // 找不到登記處＝沒有登記資料，照常算完（不 throw）。
 // registryNumber（可選）：直接指定登記處的討論編號；沒給就用 isRegistry（Announcements 分類＋標題「名牌登記處」）找。
-export async function runBot({ gql, owner, name, blocklistText, readOld, write, now, registryNumber }) {
+export async function runBot({ gql, owner, name, blocklistText, readOld, write, now, registryNumber, readOldQuestions, writeQuestions }) {
   const data = await fetchAll(gql, owner, name);
   const n = Number(registryNumber);
   const pinned = Number.isInteger(n) && n > 0 ? data.discussions.find((d) => d.number === n) : null;
   const out = compute({ discussions: data.discussions, blocklist: parseBlocklist(blocklistText), now, registry: pinned });
   const registryFound = !!out.registryUrl;
-  if (sameContent(await readOld(), out)) return { wrote: false, registryFound };
+  const questions = buildQuestions({ discussions: data.discussions, now, registry: pinned });
+  let questionsWrote = false;
+  if (writeQuestions && !sameContent(readOldQuestions ? await readOldQuestions() : null, questions)) {
+    await writeQuestions(serialize(questions)); questionsWrote = true;
+  }
+  if (sameContent(await readOld(), out)) return { wrote: false, registryFound, questions, questionsWrote };
   await write(serialize(out));
-  return { wrote: true, registryFound };
+  return { wrote: true, registryFound, questions, questionsWrote };
 }

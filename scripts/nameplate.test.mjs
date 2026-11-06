@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseRegistration, resolveColor, sanitizeNickname, parseBlocklist, fetchAll, compute, sameContent, runBot, findColor, COLORS, Q_DISCUSSIONS, Q_MORE_COMMENTS } from './lib.mjs';
+import { buildQuestions, isGiscusDiscussion, isPagePathTitle, extractTags, summarizeQuestions, parseRegistration, resolveColor, sanitizeNickname, parseBlocklist, fetchAll, compute, sameContent, runBot, findColor, COLORS, Q_DISCUSSIONS, Q_MORE_COMMENTS } from './lib.mjs';
 
 const cm = (login, body = 'x', extra = {}) => ({ body, isAnswer: false, createdAt: '2026-11-01T00:00:00Z', author: { login }, ...extra });
 const disc = (o) => ({ id: 'D' + o.number, url: 'https://github.com/o/r/discussions/' + o.number, author: { login: 'giscus' }, comments: [], ...o });
@@ -188,4 +188,88 @@ test('別人在 Q&A 開同名討論串不算登記處', () => {
   assert.equal(out.registryUrl, null);
   assert.equal(out.people.find((p) => p.login === 'amy').nickname, 'amy');
   assert.deepEqual(parseBlocklist('\u3000\n壞'), ['壞']);
+});
+
+// ---------- data/questions.json ----------
+const qd = (n, asker, o = {}) => ({ ...qa(n, asker, o.comments || []), createdAt: `2026-11-0${n}T00:00:00Z`, bodyHTML: `<p>內文${n}</p>`, isAnswered: false, answer: null, ...o });
+const GISCUS_BODY = 'https://spacegrapefruit.com/qa/x/\n\n# 題目\n\n<!-- sha1: 99c12d1bae855489c6cc558013efa7cb9b16995c -->';
+
+test('questions：Q&A 全收、新的在前、欄位齊全', () => {
+  const ds = [qd(1, 'amy', { title: '舊題' }), qd(2, 'bob', { title: '新題' }), ann(50, '一般公告', []), disc({ number: 51, title: '閒聊', category: { slug: 'general', name: 'General' } })];
+  const q = buildQuestions({ discussions: ds, now: new Date('2026-11-06T00:00:00Z') });
+  assert.equal(q.updatedAt, '2026-11-06T00:00:00.000Z');
+  assert.deepEqual(q.questions.map((x) => x.number), [2, 1]);   // 非題目的公告／別的分類不收
+  assert.deepEqual(Object.keys(q.questions[0]).sort(), ['answerAuthor', 'answered', 'answers', 'author', 'bodyHTML', 'category', 'categorySlug', 'createdAt', 'number', 'tags', 'title', 'url'].sort());
+  assert.equal(q.questions[0].bodyHTML, '<p>內文2</p>');
+  assert.equal(q.questions[0].category, 'Q&A'); assert.equal(q.questions[0].categorySlug, 'q-a');
+  assert.deepEqual(q.questions[0].author, { login: 'bob', avatar: 'https://github.com/bob.png?size=64' });
+});
+
+test('questions：名牌登記處排除（含指定編號的），其他非題目公告也排除', () => {
+  const ds = [registry([cm('amy', '暱稱：x')]), ann(5, '歡迎來到知識+', [cm('amy')]), qd(1, 'amy')];
+  assert.deepEqual(buildQuestions({ discussions: ds }).questions.map((x) => x.number), [1]);
+  const odd = disc({ number: 7, title: '隨便', category: { slug: 'q-a', name: 'Q&A' } });
+  assert.equal(buildQuestions({ discussions: [odd, qd(1, 'amy')], registry: odd }).questions.length, 1);   // 被指定成登記處就排除
+  const fake = { ...qd(8, 'evil'), title: '名牌登記處' };   // Q&A 裡的同名串不是登記處，照一般題目收
+  assert.equal(buildQuestions({ discussions: [fake] }).questions.length, 1);
+});
+
+test('questions：Announcements 標題是頁面路徑 → 收並帶 pagePath；非 Q&A 的 answered=false', () => {
+  const ds = [ann(1, 'qa/sillytavern-railway-to-docker/', [cm('amy'), cm('bob')]), ann(2, '/qa/foo/ ', []), ann(3, '歡迎', []), ann(4, 'hello world/x', []), ann(5, 'about', [])];
+  const q = buildQuestions({ discussions: ds }).questions;
+  assert.deepEqual(q.map((x) => x.number).sort(), [1, 2]);
+  const p = q.find((x) => x.number === 1);
+  assert.equal(p.pagePath, 'qa/sillytavern-railway-to-docker/'); assert.equal(p.answers, 2);
+  assert.equal(p.answered, false); assert.equal(p.answerAuthor, null);
+  assert.equal(q.find((x) => x.number === 2).pagePath, '/qa/foo/');
+  assert.equal(isPagePathTitle('qa/a/'), true); assert.equal(isPagePathTitle('名牌登記處'), false); assert.equal(isPagePathTitle('a b/c'), false);
+  assert.equal(buildQuestions({ discussions: [qd(1, 'amy')] }).questions[0].pagePath, undefined);
+});
+
+test('questions：answers 不算發問人自己的留言（不分大小寫）；answered／answerAuthor 來自 Q&A', () => {
+  const d = qd(1, 'Amy', { comments: [cm('amy'), cm('bob'), cm('carl'), cm('AMY')], isAnswered: true, answer: { author: { login: 'bob' } } });
+  const x = buildQuestions({ discussions: [d] }).questions[0];
+  assert.equal(x.answers, 2); assert.equal(x.answered, true); assert.equal(x.answerAuthor, 'bob');
+  const y = buildQuestions({ discussions: [qd(2, 'amy')] }).questions[0];
+  assert.deepEqual([y.answers, y.answered, y.answerAuthor], [0, false, null]);
+});
+
+test('questions：tags 取標題開頭的 [XXX]，沒有就空陣列，title 保留原樣', () => {
+  assert.deepEqual(extractTags('[SillyTavern] 連不上'), ['SillyTavern']);
+  assert.deepEqual(extractTags('[A][B] 兩個'), ['A', 'B']);
+  assert.deepEqual(extractTags('中間的 [X] 不算'), []);
+  assert.deepEqual(extractTags('沒有'), []);
+  const x = buildQuestions({ discussions: [qd(1, 'amy', { title: '[SillyTavern] 連不上了' })] }).questions[0];
+  assert.deepEqual(x.tags, ['SillyTavern']); assert.equal(x.title, '[SillyTavern] 連不上了');
+});
+
+test('questions：giscus 開的討論 → 第一則頂層留言當題目與發問人，answers 不算那則', () => {
+  const g = qd(1, 'giscus', { body: GISCUS_BODY, bodyHTML: '<p>機器人內文</p>', comments: [
+    cm('dave', 'x', { bodyHTML: '<p>dave 的問題</p>' }), cm('erin'), cm('dave'), cm('frank')] });
+  const x = buildQuestions({ discussions: [g] }).questions[0];
+  assert.equal(x.author.login, 'dave'); assert.equal(x.bodyHTML, '<p>dave 的問題</p>');
+  assert.equal(x.answers, 2);   // erin、frank；dave 自己的不算
+  const empty = buildQuestions({ discussions: [qd(2, 'giscus', { body: GISCUS_BODY, comments: [] })] }).questions[0];
+  assert.equal(empty.author.login, 'giscus'); assert.equal(empty.answers, 0);   // 還沒人留言，維持原樣
+  assert.equal(isGiscusDiscussion(qd(3, 'amy', { body: GISCUS_BODY })), false);   // 一般人開的、內文剛好有標記不算
+  assert.equal(isGiscusDiscussion(qd(3, 'giscus[bot]', { body: GISCUS_BODY })), true);
+  assert.equal(isGiscusDiscussion(qd(3, 'some-app[bot]', { body: GISCUS_BODY })), true);
+  assert.equal(isGiscusDiscussion(qd(3, 'giscus', { body: '普通內文' })), false);
+  // Announcements 的頁面串（giscus 開的）內文是頁面介紹，不換
+  const pg = ann(4, 'qa/x/', [cm('amy', 'x', { bodyHTML: '<p>回答</p>' })]); pg.body = GISCUS_BODY; pg.bodyHTML = '<p>頁面</p>';
+  const px = buildQuestions({ discussions: [pg] }).questions[0];
+  assert.equal(px.bodyHTML, '<p>頁面</p>'); assert.equal(px.answers, 1);
+});
+
+test('questions：runBot 一起寫、內容沒變不重寫；dry-run 摘要', async () => {
+  const all = [qd(1, 'amy', { title: '[ST] 題目', comments: [cm('bob')] }), ann(2, 'qa/x/', [])];
+  let qfile = null, qwrites = 0;
+  const run = (now) => runBot({ gql: fakeGql(all).gql, owner: 'o', name: 'r', blocklistText: '', readOld: async () => null, write: async () => {}, now,
+    readOldQuestions: async () => qfile, writeQuestions: async (t) => { qfile = t; qwrites++; } });
+  const r1 = await run(new Date('2026-11-05T00:00:00Z'));
+  assert.equal(r1.questionsWrote, true); assert.equal(JSON.parse(qfile).questions.length, 2);
+  assert.equal((await run(new Date('2026-11-06T00:00:00Z'))).questionsWrote, false);
+  assert.equal(qwrites, 1);
+  const s = summarizeQuestions(r1.questions);
+  assert.match(s, /2 題/); assert.match(s, /#1 \[ST\] 題目（answers=1）/); assert.match(s, /pagePath=qa\/x\//);
 });
