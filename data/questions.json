@@ -1,6 +1,26 @@
 {
-  "updatedAt": "2026-11-06T10:32:23.581Z",
+  "updatedAt": "2026-11-06T11:21:36.911Z",
   "questions": [
+    {
+      "number": 7,
+      "title": "[SillyTavern] SillyTavern 用 Docker 怎麼更新？",
+      "url": "https://github.com/alanis6v6/spacegrapefruit-qa/discussions/7",
+      "category": "Q&A",
+      "categorySlug": "q-a",
+      "author": {
+        "login": "alanis6v6",
+        "avatar": "https://github.com/alanis6v6.png?size=64"
+      },
+      "createdAt": "2026-11-06T11:21:28Z",
+      "bodyHTML": "<p dir=\"auto\">SillyTavern 是照教學用 Docker 架的，現在說有新版本了。<br>\n要怎麼更新才不會把角色卡跟聊天紀錄弄不見？更新前要先備份哪些東西？</p>",
+      "answers": 0,
+      "answered": false,
+      "answerAuthor": null,
+      "tags": [
+        "SillyTavern"
+      ],
+      "viaGiscus": true
+    },
     {
       "number": 5,
       "title": "[SillyTavern] SillyTavern 架在自己電腦，手機要怎麼連？",
@@ -18,7 +38,8 @@
       "answerAuthor": null,
       "tags": [
         "SillyTavern"
-      ]
+      ],
+      "viaGiscus": true
     },
     {
       "number": 1,
@@ -36,6 +57,7 @@
       "answered": false,
       "answerAuthor": null,
       "tags": [],
+      "viaGiscus": false,
       "pagePath": "qa/sillytavern-railway-to-docker/"
     }
   ]
