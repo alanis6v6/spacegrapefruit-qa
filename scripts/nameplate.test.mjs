@@ -199,7 +199,7 @@ test('questions：Q&A 全收、新的在前、欄位齊全', () => {
   const q = buildQuestions({ discussions: ds, now: new Date('2026-11-06T00:00:00Z') });
   assert.equal(q.updatedAt, '2026-11-06T00:00:00.000Z');
   assert.deepEqual(q.questions.map((x) => x.number), [2, 1]);   // 非題目的公告／別的分類不收
-  assert.deepEqual(Object.keys(q.questions[0]).sort(), ['answerAuthor', 'answered', 'answers', 'author', 'bodyHTML', 'category', 'categorySlug', 'createdAt', 'number', 'tags', 'title', 'url'].sort());
+  assert.deepEqual(Object.keys(q.questions[0]).sort(), ['answerAuthor', 'answered', 'answers', 'author', 'bodyHTML', 'category', 'categorySlug', 'createdAt', 'number', 'tags', 'title', 'url', 'viaGiscus'].sort());
   assert.equal(q.questions[0].bodyHTML, '<p>內文2</p>');
   assert.equal(q.questions[0].category, 'Q&A'); assert.equal(q.questions[0].categorySlug, 'q-a');
   assert.deepEqual(q.questions[0].author, { login: 'bob', avatar: 'https://github.com/bob.png?size=64' });
@@ -249,7 +249,10 @@ test('questions：giscus 開的討論 → 第一則頂層留言當題目與發�
   const x = buildQuestions({ discussions: [g] }).questions[0];
   assert.equal(x.author.login, 'dave'); assert.equal(x.bodyHTML, '<p>dave 的問題</p>');
   assert.equal(x.answers, 2);   // erin、frank；dave 自己的不算
+  assert.equal(x.viaGiscus, true);
   const empty = buildQuestions({ discussions: [qd(2, 'giscus', { body: GISCUS_BODY, comments: [] })] }).questions[0];
+  assert.equal(empty.viaGiscus, true);   // 還沒人留言也算站內發問
+  assert.equal(buildQuestions({ discussions: [qd(5, 'amy', { body: GISCUS_BODY })] }).questions[0].viaGiscus, false);   // 一般人開的
   assert.equal(empty.author.login, 'giscus'); assert.equal(empty.answers, 0);   // 還沒人留言，維持原樣
   assert.equal(isGiscusDiscussion(qd(3, 'amy', { body: GISCUS_BODY })), false);   // 一般人開的、內文剛好有標記不算
   assert.equal(isGiscusDiscussion(qd(3, 'giscus[bot]', { body: GISCUS_BODY })), true);
@@ -258,7 +261,7 @@ test('questions：giscus 開的討論 → 第一則頂層留言當題目與發�
   // Announcements 的頁面串（giscus 開的）內文是頁面介紹，不換
   const pg = ann(4, 'qa/x/', [cm('amy', 'x', { bodyHTML: '<p>回答</p>' })]); pg.body = GISCUS_BODY; pg.bodyHTML = '<p>頁面</p>';
   const px = buildQuestions({ discussions: [pg] }).questions[0];
-  assert.equal(px.bodyHTML, '<p>頁面</p>'); assert.equal(px.answers, 1);
+  assert.equal(px.bodyHTML, '<p>頁面</p>'); assert.equal(px.answers, 1); assert.equal(px.viaGiscus, false);   // 頁面串不是站內發問的題目
 });
 
 test('questions：runBot 一起寫、內容沒變不重寫；dry-run 摘要', async () => {
