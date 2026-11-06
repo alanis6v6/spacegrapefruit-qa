@@ -203,9 +203,19 @@ export function isPagePathTitle(title) {
   const t = String(title || '').trim();
   return /^\/?[A-Za-z0-9_.~%-]+(\/[A-Za-z0-9_.~%-]*)+$/.test(t);
 }
+export const TAGS_MAX = 5;
+const LEADING_TAGS = /^(?:\s*\[[^\]]*\])+/;
+// 標題開頭連續的 [A][B][C]（中間可有空白）全部取成 tags：去重、保留順序、去前後空白、最多 5 個；標題中段／後面的方括號不算
 export function extractTags(title) {
-  const m = String(title || '').match(/^(?:\s*\[[^\]]+\])+/);
-  return m ? [...m[0].matchAll(/\[([^\]]+)\]/g)].map((x) => x[1].trim()).filter(Boolean) : [];
+  const m = String(title || '').match(LEADING_TAGS);
+  if (!m) return [];
+  const tags = [...m[0].matchAll(/\[([^\]]*)\]/g)].map((x) => x[1].trim()).filter(Boolean);
+  return [...new Set(tags)].slice(0, TAGS_MAX);
+}
+// 去掉開頭那串方括號後的標題（網站顯示用）；去完變空字串就退回原標題
+export function cleanTitleOf(title) {
+  const t = String(title || '');
+  return t.replace(LEADING_TAGS, '').trim() || t.trim();
 }
 const authorOf = (a) => { const login = (a && a.login) || 'ghost'; return { login, avatar: avatarOf(login) }; };
 
@@ -235,6 +245,7 @@ export function buildQuestions({ discussions, now = new Date(), registry: pinned
       answered: isQA && d.isAnswered === true,
       answerAuthor: isQA && d.answer && d.answer.author ? d.answer.author.login : null,
       tags: extractTags(d.title),
+      cleanTitle: cleanTitleOf(d.title),
       viaGiscus,
     };
     if (isPage) q.pagePath = d.title.trim();
@@ -244,7 +255,7 @@ export function buildQuestions({ discussions, now = new Date(), registry: pinned
   return { updatedAt: now.toISOString(), questions: out };
 }
 export const summarizeQuestions = (qs) => `questions.json：${qs.questions.length} 題\n` +
-  qs.questions.map((q) => `  #${q.number} ${q.title}（answers=${q.answers}${q.pagePath ? ', pagePath=' + q.pagePath : ''}${q.viaGiscus ? ', viaGiscus' : ''}）`).join('\n');
+  qs.questions.map((q) => `  #${q.number} ${q.title}（tags=${JSON.stringify(q.tags)}, cleanTitle=${JSON.stringify(q.cleanTitle)}, answers=${q.answers}${q.pagePath ? ', pagePath=' + q.pagePath : ''}${q.viaGiscus ? ', viaGiscus' : ''}）`).join('\n');
 
 // 內容沒變（不看 updatedAt）就不用寫檔、不用 commit
 export function sameContent(oldJson, newObj) {

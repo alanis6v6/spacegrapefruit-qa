@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildQuestions, isGiscusDiscussion, isPagePathTitle, extractTags, summarizeQuestions, parseRegistration, resolveColor, sanitizeNickname, parseBlocklist, fetchAll, compute, sameContent, runBot, findColor, COLORS, Q_DISCUSSIONS, Q_MORE_COMMENTS } from './lib.mjs';
+import { buildQuestions, isGiscusDiscussion, isPagePathTitle, extractTags, cleanTitleOf, summarizeQuestions, parseRegistration, resolveColor, sanitizeNickname, parseBlocklist, fetchAll, compute, sameContent, runBot, findColor, COLORS, Q_DISCUSSIONS, Q_MORE_COMMENTS } from './lib.mjs';
 
 const cm = (login, body = 'x', extra = {}) => ({ body, isAnswer: false, createdAt: '2026-11-01T00:00:00Z', author: { login }, ...extra });
 const disc = (o) => ({ id: 'D' + o.number, url: 'https://github.com/o/r/discussions/' + o.number, author: { login: 'giscus' }, comments: [], ...o });
@@ -199,10 +199,26 @@ test('questions：Q&A 全收、新的在前、欄位齊全', () => {
   const q = buildQuestions({ discussions: ds, now: new Date('2026-11-06T00:00:00Z') });
   assert.equal(q.updatedAt, '2026-11-06T00:00:00.000Z');
   assert.deepEqual(q.questions.map((x) => x.number), [2, 1]);   // 非題目的公告／別的分類不收
-  assert.deepEqual(Object.keys(q.questions[0]).sort(), ['answerAuthor', 'answered', 'answers', 'author', 'bodyHTML', 'category', 'categorySlug', 'createdAt', 'number', 'tags', 'title', 'url', 'viaGiscus'].sort());
+  assert.deepEqual(Object.keys(q.questions[0]).sort(), ['answerAuthor', 'answered', 'answers', 'author', 'bodyHTML', 'category', 'categorySlug', 'cleanTitle', 'createdAt', 'number', 'tags', 'title', 'url', 'viaGiscus'].sort());
   assert.equal(q.questions[0].bodyHTML, '<p>內文2</p>');
   assert.equal(q.questions[0].category, 'Q&A'); assert.equal(q.questions[0].categorySlug, 'q-a');
   assert.deepEqual(q.questions[0].author, { login: 'bob', avatar: 'https://github.com/bob.png?size=64' });
+});
+
+test('questions：複選分類 tags／cleanTitle（單一、兩個、三個、空白、中段不算、沒有、去重、上限）', () => {
+  const t = (title) => ({ tags: extractTags(title), clean: cleanTitleOf(title) });
+  assert.deepEqual(t('[ST] 單一'), { tags: ['ST'], clean: '單一' });
+  assert.deepEqual(t('[SillyTavern][Docker] 兩個'), { tags: ['SillyTavern', 'Docker'], clean: '兩個' });
+  assert.deepEqual(t('[A][B][C] 三個'), { tags: ['A', 'B', 'C'], clean: '三個' });
+  assert.deepEqual(t('[SillyTavern] [Docker]  中間有空白'), { tags: ['SillyTavern', 'Docker'], clean: '中間有空白' });
+  assert.deepEqual(t('[A] 標題 [B] 中段不算'), { tags: ['A'], clean: '標題 [B] 中段不算' });
+  assert.deepEqual(t('標題 [B]'), { tags: [], clean: '標題 [B]' });
+  assert.deepEqual(t('沒有分類'), { tags: [], clean: '沒有分類' });
+  assert.deepEqual(t('[A][ A ][B] 去重'), { tags: ['A', 'B'], clean: '去重' });
+  assert.deepEqual(extractTags('[1][2][3][4][5][6][7] x'), ['1', '2', '3', '4', '5']);
+  assert.equal(cleanTitleOf('[A][B]'), '[A][B]');   // 去完沒字就退回原標題
+  const x = buildQuestions({ discussions: [qd(1, 'amy', { title: '[SillyTavern][Docker] 連不上' })] }).questions[0];
+  assert.deepEqual(x.tags, ['SillyTavern', 'Docker']); assert.equal(x.cleanTitle, '連不上'); assert.equal(x.title, '[SillyTavern][Docker] 連不上');
 });
 
 test('questions：名牌登記處排除（含指定編號的），其他非題目公告也排除', () => {
@@ -274,5 +290,5 @@ test('questions：runBot 一起寫、內容沒變不重寫；dry-run 摘要', as
   assert.equal((await run(new Date('2026-11-06T00:00:00Z'))).questionsWrote, false);
   assert.equal(qwrites, 1);
   const s = summarizeQuestions(r1.questions);
-  assert.match(s, /2 題/); assert.match(s, /#1 \[ST\] 題目（answers=1）/); assert.match(s, /pagePath=qa\/x\//);
+  assert.match(s, /2 題/); assert.match(s, /#1 \[ST\] 題目（tags=\["ST"\], cleanTitle="題目", answers=1）/); assert.match(s, /pagePath=qa\/x\//);
 });
