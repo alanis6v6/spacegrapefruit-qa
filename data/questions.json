@@ -1,0 +1,42 @@
+{
+  "updatedAt": "2026-11-06T10:32:23.581Z",
+  "questions": [
+    {
+      "number": 5,
+      "title": "[SillyTavern] SillyTavern 架在自己電腦，手機要怎麼連？",
+      "url": "https://github.com/alanis6v6/spacegrapefruit-qa/discussions/5",
+      "category": "Q&A",
+      "categorySlug": "q-a",
+      "author": {
+        "login": "alanis6v6",
+        "avatar": "https://github.com/alanis6v6.png?size=64"
+      },
+      "createdAt": "2026-11-06T10:32:16Z",
+      "bodyHTML": "<p dir=\"auto\">SillyTavern 已經用 Docker 架在家裡的電腦上，電腦開瀏覽器可以正常用。<br>\n想躺在床上用手機玩，手機要怎麼連到電腦上的 SillyTavern？<br>\n在家裡同一個 Wi-Fi，跟出門用行動網路，做法會不一樣嗎？</p>",
+      "answers": 0,
+      "answered": false,
+      "answerAuthor": null,
+      "tags": [
+        "SillyTavern"
+      ]
+    },
+    {
+      "number": 1,
+      "title": "qa/sillytavern-railway-to-docker/",
+      "url": "https://github.com/alanis6v6/spacegrapefruit-qa/discussions/1",
+      "category": "Announcements",
+      "categorySlug": "announcements",
+      "author": {
+        "login": "giscus",
+        "avatar": "https://github.com/giscus.png?size=64"
+      },
+      "createdAt": "2026-11-06T08:55:22Z",
+      "bodyHTML": "<h1 dir=\"auto\">qa/sillytavern-railway-to-docker/</h1>\n<p dir=\"auto\">Railway 被擋、SillyTavern 連不上時，一步一步把它搬到自己電腦的 Docker：先備份、在電腦跑起來，確認沒問題才關 Railway。</p>\n<p dir=\"auto\"><a href=\"https://spacegrapefruit.com/qa/sillytavern-railway-to-docker/\" rel=\"nofollow\">https://spacegrapefruit.com/qa/sillytavern-railway-to-docker/</a></p>\n",
+      "answers": 0,
+      "answered": false,
+      "answerAuthor": null,
+      "tags": [],
+      "pagePath": "qa/sillytavern-railway-to-docker/"
+    }
+  ]
+}
