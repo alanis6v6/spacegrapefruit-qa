@@ -31,7 +31,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # 可選：「名牌登記處」討論的編號（討論網址最後那個數字）。留空＝自動找
           # （Announcements 分類＋標題剛好是「名牌登記處」）。登記處建好後可填，更保險。
-          REGISTRY_DISCUSSION_NUMBER: ''
+          REGISTRY_DISCUSSION_NUMBER: '3'
       - name: 有變才 commit
         run: |
           git add data/leaderboard.json
