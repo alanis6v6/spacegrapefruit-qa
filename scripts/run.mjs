@@ -5,7 +5,7 @@
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { runBot } from './lib.mjs';
+import { runBot, summarizeQuestions } from './lib.mjs';
 
 const dryRun = process.argv.includes('--dry-run');
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -25,6 +25,7 @@ async function gql(query, variables) {
 }
 
 const file = resolve(root, 'data/leaderboard.json');
+const qfile = resolve(root, 'data/questions.json');
 const res = await runBot({
   gql, owner, name,
   registryNumber: process.env.REGISTRY_DISCUSSION_NUMBER,   // 可選：直接指定登記處的討論編號；沒設就用「Announcements 分類＋標題」找
@@ -34,9 +35,14 @@ const res = await runBot({
     if (dryRun) { process.stdout.write(text); return; }
     await mkdir(dirname(file), { recursive: true }); await writeFile(file, text);
   },
-  dryRun,
+  readOldQuestions: () => readFile(qfile, 'utf8').catch(() => null),
+  writeQuestions: async (text) => {
+    if (dryRun) return;   // dry-run 只印摘要（stderr），不寫檔
+    await mkdir(dirname(qfile), { recursive: true }); await writeFile(qfile, text);
+  },
 });
 const log = dryRun ? console.error : console.log;   // dry-run 時 stdout 只放名單 JSON
 if (!res.registryFound) log('（找不到「名牌登記處」討論串，當作沒有登記資料）');
+if (dryRun) log(summarizeQuestions(res.questions));
 if (dryRun) log('[dry-run] 只讀，沒寫檔、沒 commit');
-else log(res.wrote ? '已更新 data/leaderboard.json' : '內容沒變，不寫檔');
+else log((res.wrote ? '已更新 data/leaderboard.json' : '排行榜內容沒變，不寫檔') + '；' + (res.questionsWrote ? '已更新 data/questions.json' : 'questions.json 內容沒變，不寫檔'));

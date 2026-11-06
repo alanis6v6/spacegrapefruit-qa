@@ -23,6 +23,33 @@ GITHUB_TOKEN="$(gh auth token)" GITHUB_REPOSITORY=alanis6v6/spacegrapefruit-qa n
 ```
 只讀 API，把名單 JSON 印到 stdout（說明文字走 stderr），不寫檔、不 commit。token 只放在環境變數，不要寫進檔案。
 
+## 題目清單 `data/questions.json`
+
+同一次跑、同一次 commit 還會多寫 `data/questions.json`，給網站畫題目列表與站內問題頁（頁面底下嵌 giscus 讓人在網頁上回答）。網址：https://raw.githubusercontent.com/alanis6v6/spacegrapefruit-qa/main/data/questions.json
+
+```
+{ "updatedAt": "ISO 時間", "questions": [ { ... }, ... ] }   // 新的在前（createdAt 由新到舊）
+```
+
+| 欄位 | 說明 |
+|---|---|
+| `number` / `url` | 討論編號與網址 |
+| `title` | 原標題（含 `[SillyTavern]` 前綴，不改） |
+| `tags` | 標題**開頭**的 `[XXX]`，可多個；沒有就 `[]` |
+| `category` / `categorySlug` | 分類名稱／slug（`Q&A`／`q-a` 或 `Announcements`／`announcements`） |
+| `author` | `{ login, avatar }`；帳號被刪＝`ghost` |
+| `createdAt` | 討論建立時間 |
+| `bodyHTML` | GitHub GraphQL 的 `bodyHTML`（GitHub 已清理過，不是自己轉的） |
+| `answers` | 頂層留言數，**不算發問人自己的留言**（回覆串裡的回覆不算） |
+| `answered` / `answerAuthor` | Q&A 的 `isAnswered`／被選為解答那則的作者；非 Q&A 固定 `false`／`null` |
+| `pagePath` | 只有「頁面串」才有：Announcements 裡標題是網站頁面路徑的討論（例 `qa/sillytavern-railway-to-docker/`，giscus 用 pathname 對應） |
+
+**收哪些**：Q&A 分類全部；加上 Announcements 裡標題是頁面路徑的（沒空白、至少一個 `/`、只含網址字元）。「名牌登記處」與其他公告不收。
+
+**giscus 自動開的討論**（站內發問會這樣產生）：作者 login 是 `giscus` 開頭或 `[bot]` 結尾，且內文含 giscus 標記 `<!-- sha1: ... -->`（函式 `isGiscusDiscussion`）。這種**Q&A 分類**的討論，題目內容（`bodyHTML`）與發問人（`author`）改用**第一則頂層留言**的，`answers` 不算那一則。頁面串（Announcements）內文是頁面介紹，不換。還沒人留言時維持原樣。
+
+內容沒變（不看 `updatedAt`）就不重寫、不 commit。dry-run 會在 stderr 印題數與每題 number／title／answers 摘要，不寫檔。
+
 ## 怎麼找到「名牌登記處」
 
 1. 若設了環境變數 `REGISTRY_DISCUSSION_NUMBER`，就用那個編號的討論。
