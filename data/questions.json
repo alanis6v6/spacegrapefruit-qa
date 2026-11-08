@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-06T11:21:36.911Z",
+  "updatedAt": "2026-11-08T10:31:40.836Z",
   "questions": [
     {
       "number": 7,
@@ -19,6 +19,7 @@
       "tags": [
         "SillyTavern"
       ],
+      "cleanTitle": "SillyTavern 用 Docker 怎麼更新？",
       "viaGiscus": true
     },
     {
@@ -39,6 +40,7 @@
       "tags": [
         "SillyTavern"
       ],
+      "cleanTitle": "SillyTavern 架在自己電腦，手機要怎麼連？",
       "viaGiscus": true
     },
     {
@@ -57,6 +59,7 @@
       "answered": false,
       "answerAuthor": null,
       "tags": [],
+      "cleanTitle": "qa/sillytavern-railway-to-docker/",
       "viaGiscus": false,
       "pagePath": "qa/sillytavern-railway-to-docker/"
     }
